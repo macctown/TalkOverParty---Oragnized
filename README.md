@@ -9,3 +9,6 @@ There are 2 versions before the one I'm going to work on:
 2. Feb 2016 - Fully function of "Location", "Use of Yelp API", "Polygon Search", "Basic UI". But failed due to no use of git and unkown bug happens.
 
 Therefore, this version will be fully tracked on Github and more organizable than the version before.
+
+##UPDATE
+3. Mar 2016 - 10 days left of Yelp Hackthon, so I just began to complete the project from the original code. (will be more organizable in the future...|||)
