@@ -1,0 +1,306 @@
+var express = require('express')
+	, http = require('http');
+var static = require('node-static');
+var app = express(),
+	server = http.createServer(app),
+	io = require('socket.io').listen(server);
+var session = require("express-session");
+var cookieParser = require('cookie-parser')
+const MongoStore = require('connect-mongo')(session);
+var Yelp = require('yelp');
+var mongoose = require('mongoose');
+var uuid = require('node-uuid');
+var winston = require('winston');
+var Schema = mongoose.Schema;
+
+
+var northeastLat;
+var northeastLng;
+var southwestLat;
+var southwestLng;
+
+var handlebars = require('express3-handlebars').create({defaultLayout:'main'});
+app.engine('handlebars', handlebars.engine);
+app.set('view engine', 'handlebars');
+
+var logger = new winston.Logger({
+    transports: [
+        new winston.transports.File({
+            level: 'info',
+            filename: './logs/yelp-logs.log',
+            handleExceptions: true,
+            json: true,
+            maxsize: 5242880, //5MB
+            maxFiles: 5,
+            colorize: false
+        }),
+        new winston.transports.Console({
+            level: 'debug',
+            handleExceptions: true,
+            json: false,
+            colorize: true
+        })
+    ],
+    exitOnError: false
+});
+
+app.use(cookieParser());
+
+app.use(express.static(__dirname + '/public'));
+// create a schema
+var userSchema = new Schema({
+  userId: {type: String, unique:true},
+  socketId: String
+});
+
+var msgSchema = new Schema({
+  userId: String,
+  msgContent: String,
+  msgDate: Date
+});
+
+var chatSchema = new Schema({
+  chatUsers: [userSchema],
+  chatContent: [msgSchema],
+  chatCreateDate: Date,
+  chatActive: Boolean
+});
+
+
+var Chat = mongoose.model('Chat', chatSchema);
+var User = mongoose.model('User', userSchema);
+var Message = mongoose.model('Message', msgSchema);
+
+io.on('connection', function(socket){
+	
+	var yelp = new Yelp({
+		consumer_key: 'v4hjI53TEiOPzQxkazpR6A',
+		consumer_secret: 'TXXFLEu-KXOipXVOKRgDx1v_Py8',
+		token: 'FChFCtuAmyPaRxYiJI0IlWhwc-svbOnX',
+		token_secret: 'n9oaLmDrjSJjmpCQ748EQPo_-Lk',
+	});
+
+
+	socket.on('send:coords', function(data){
+		logger.info(data.userId+" "+data.coords.lat);
+		socket.broadcast.emit('load:coords', data);
+	});
+	socket.on('disconnect', function(){
+		logger.info('A User Dicsonnected');
+	});
+
+	socket.on('sendYelpBounds', function (neLat, neLng, swLat, swLng) {
+	   //socket.emit('serverMessage', 'Got a message!');
+	   northeastLat = neLat;
+	   northeastLng = neLng;
+	   southwestLat = swLat;
+	   southwestLng = swLng;
+
+	   logger.info('Yelp Bounds NE-lat:', neLat,' , NE-lng:', neLng);
+	   logger.info('Yelp Bounds SW-lat:', swLat,' , SW-lng:', swLng);
+
+	   yelp.search({ term: 'food', bounds: northeastLat+","+northeastLng+"|"+southwestLat+","+southwestLng })
+		.then(function (data) {
+		  logger.info(data);
+		  socket.emit('getApiData', data);
+		})
+		.catch(function (err) {
+		  logger.error(err);
+		});
+	});
+
+	//update userName and insert user into chat
+	socket.on('joinUsertoChat', function(data){
+		var userId = data.userId;
+		var chatId = data.chatId;
+		var userName = data.userName;
+		mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {
+			    if(err){
+				    logger.error(err);
+				    socket.emit('errorAlert', err);
+			    }
+			    else{
+					//console.log("User Name Session Set: "+session);
+					logger.info("MongoDB Connected after saveName!");
+				}
+			});
+
+		if(chatId != ""){
+
+			logger.info('User '+data.userId+" connected and going to join chat: "+chatId);
+			var newUser = new User({
+				userId: userId,
+				socketId: socket.id
+			});
+
+			Chat.update(
+				{_id: chatId, 'chatUsers.userId':{$ne: newUser.userId}}, 
+				{$addToSet:{chatUsers:newUser}}, 
+				{safe: true, upsert: true, unique: true},
+    			function(err, model) {	
+        			if(err&&err.code === 11000){
+        				logger.warn("User"+userId+"has joined into chat before");
+        			}
+        			else{
+        				if(err){
+		        			logger.error("Error when join user into chat: "+err);
+		        			socket.emit('errorAlert', err);
+        				}
+        				else{
+	        				logger.info("User "+userId+" join into chat successfully");
+        				}
+        			}
+        			
+    		});
+		}
+		else{
+			logger.info('User '+data.userId+" just connected");
+			//That's it
+		}
+	});
+
+	//send chat msg to the users in their own groups
+	socket.on('chatInput', function(data){
+		var name = data.userName,
+			message = data.message;
+		logger.info(data.userId, name, message);
+		//io.emit('chatOutput', [data]);
+	});
+
+	//create a chat room and share link
+	socket.on('createRecord', function(data){
+		console.log("Begin to create record for chat...");
+		var userId = data.userId;
+		var userSocketId = socket.id;
+		var userName = data.userName;
+		var userName = data.userName;
+
+		logger.info(socket.handshake.headers.cookie.toString());
+		logger.info(data.userId,"is going to create a conversation");
+		if(socket.handshake.headers.cookie.toString().indexOf('cSharedLink') > -1){
+			var cleanCookie = decodeURIComponent(socket.handshake.headers.cookie.toString());
+			var sharedLinkLocate = cleanCookie.search('cSharedLink');
+			var sharedLink = cleanCookie.substr(sharedLinkLocate+12, 60);
+			logger.info("User Has Shared Link Before: "+sharedLink);
+			socket.emit('shareLink', decodeURIComponent(sharedLink)); 
+		}
+		else{
+			//Init chatID (equals the doc id in mongoDB)
+			var chatID;
+
+			var currentDate = new Date();
+
+			var newChat = new Chat({
+				chatCreateDate: currentDate,
+	  			chatActive: 1
+			});
+
+			var chatCreator = new User({
+				userId: userId,
+				socketId: socket.id
+			});
+
+			mongoose.connect('mongodb://127.0.0.1:27017/talkParty', function(err) {
+			    if(err){
+				    logger.error(err);
+				    socket.emit('errorAlert', err);
+			    }
+			    else{
+					logger.info("MongoDB Connected when create new chat!");
+				}
+			});
+
+			newChat.chatUsers.push(chatCreator);
+			newChat.save(function (err, res) {
+			  	if(err&&err.code === 11000){
+			    	logger.warn("Already in a chat! Can't create another one!");
+			    	socket.emit('errorAlert','You are in chatting right now! Cant create new chat!');
+			    }
+			    else if(err&&err.code != 11000){
+        			logger.error("Error when join user into chat: "+err);
+        			socket.emit('errorAlert', err);
+			    }
+			    else{
+			    	logger.info("Chat Created: "+res.id);
+			    	var link = "http://talkover.party:3000"+'/joinChat/'+res.id;
+			    	 	var date = new Date();
+					    date.setTime(date.getTime()+(60*1000)); 
+					    var expires = "; expires="+date.toGMTString();
+					socket.handshake.headers.cookie += ';cSharedLink='+decodeURIComponent(link)+expires+";path=/";
+			    	logger.info("Link Cookie Created: "+link);
+					socket.emit('shareLink', link); 
+			    }
+			});
+		}
+
+	});
+	
+});
+
+
+server.listen(3000, function () {
+  logger.info('TalkOverParty Server Starts on Port 3000!');
+});
+
+
+app.get('/joinChat/:chatId', function(req,res){
+	res.type('text/plain');
+	res.redirect('http://talkover.party:3000/'+req.params.chatId)
+});
+
+app.get('/:chatId', function(req,res){
+	var cookie_userId = req.cookies.cUserId;
+	var data = {};
+	if(typeof cookie_userId !== 'undefined' && cookie_userId){
+		logger.info("chatId Page - ID Cookie Found and set: "+cookie_userId);
+	}
+	else{
+		cookie_userId = uuid.v4();
+		logger.info("chatId Page - ID Generated and set: "+cookie_userId);
+	}
+
+	if(req.params.chatId.toString().length == 24){
+		var link = req.protocol + "://"+req.get('host')+"/joinChat/"+req.params.chatId;
+		res.cookie('cSharedLink',link, { maxAge: 60000, httpOnly: true });
+		logger.info("Reset sharedlink cookie: "+link);
+
+		res.cookie('cChatId',req.params.chatId, { maxAge: 60000, httpOnly: true });
+		logger.info("Set chatId cookie: "+req.params.chatId);		
+		data = {userId:cookie_userId, chatId:req.params.chatId, sharedLink:link};
+	}
+	else{
+		data = {userId:cookie_userId};
+	}
+
+	res.render('home', data);
+});
+
+app.get('/', function(req,res){
+	var cookie_userId = req.cookies.cUserId;
+	var data = "";
+	if(typeof cookie_userId !== 'undefined' && cookie_userId){
+		data = {userId:cookie_userId};
+		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: true });
+		logger.info("Index Page - ID Cookie Found and set: "+cookie_userId);
+	}
+	else{	
+		var newuserId = uuid.v4();
+		res.cookie('cUserId',newuserId, { maxAge: 60000, httpOnly: true });
+		logger.info("Index Page - cookie userId Generated and set!");
+		data = {userId:newuserId};
+	}
+
+	res.render('home',data);
+	
+});
+
+app.use(function(req,res,next){
+	//res.type('text/plain');
+	res.status('404');
+	res.render('404');
+});
+
+
+
+
+

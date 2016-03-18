@@ -1,0 +1,19 @@
+{
+  "name": "talkoverparty",
+  "version": "1.0.0",
+  "description": "Combination of Yelp and Google Map API",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "macctown",
+  "license": "ISC",
+  "dependencies": {
+    "clipboard": "^1.5.8",
+    "express": "^4.13.4",
+    "mongoose": "^4.4.3",
+    "nonce": "^1.0.3",
+    "oauth-signature": "^1.3.1",
+    "request": "^2.69.0"
+  }
+}
