@@ -12,6 +12,8 @@ var sw;
 var yelpResTmp = [];
 var yelpFilterRes = [];
 var yelpMarker = [];
+var myLat;
+var myLng;
 
 
 var userId = $('#userIdInput').val();
@@ -44,7 +46,14 @@ else{
 		$("#map").text("Your browser is out of fashion, there\'s no geolocation!");
 }
 
-var bounds = new google.maps.LatLngBounds();
+
+try {
+	var bounds = new google.maps.LatLngBounds();
+}
+catch(e){
+	locatoin.reload();
+}
+
 function initMap(){
 		window.map = new google.maps.Map(document.getElementById('map'), {
 		center: {lat: 42.428996, lng: -71.077269},
@@ -56,7 +65,9 @@ function initMap(){
 function positionSuccess(position){
 	initMap();
 	var lat = position.coords.latitude;
+	myLat = lat;
 	var lng = position.coords.longitude;
+	myLng = lng;
 	var acr = position.coords.accuracy;
 	console.log("My Coords is :"+lat+", "+lng);
 	var myLatlng = new google.maps.LatLng(lat, lng);
@@ -68,8 +79,10 @@ function positionSuccess(position){
 	bounds.extend(userMarker.position);
 	google.maps.event.trigger(map, 'resize');
 
-	doc.on("mousemove", function(){
-		active = true;
+
+	setInterval(function() {
+      // update user location every 5 seconds
+      active = true;
 		sentData = {
 			chatId: $('#chatIdInput').val(),
 			id: userId,
@@ -83,7 +96,7 @@ function positionSuccess(position){
 		if($('#chatIdInput').val()){
 			socket.emit("send:coords", sentData);
 		}
-	});
+	}, 5000);
 }
 
 	doc.bind("mouseup mouseleave", function(){
@@ -154,40 +167,75 @@ $( "#bbulink" ).click(function() {
 		console.log("positionForPolygon: "+markers[mark].position.lat()+", "+markers[mark].position.lng());
 		coordsArr.push(point);
 	}
+	console.log(coordsArr.length + "markers on map now...");
+	if(coordsArr.length == 0){
+		//no marker on map, something wrong
+		var msg = "Map error occured, please refresh page and try later...";
+		$.notify(msg);
+	}
+	else if(coordsArr.length == 1){
+		//1 marker, search by radius
+		var msg = "You're the only one, please use [Around Me] function in menu";
+		$.notify(msg);
+	}
+	else if(coordsArr.length == 2){
+		//2 markers, draw a line and search
+		var centerCoords = new google.maps.LatLng(bounds.getCenter().lat(), bounds.getCenter().lng());
+		/*var centerMarker = new google.maps.Marker({
+		    position: centerCoords
+		});
+		centerMarker.setMap(map);*/
+		var radius = getDistanceFromLatLonInMiles(coordsArr[0].lat, coordsArr[0].lng, centerCoords.lat(), centerCoords.lng());
+		console.log("search radius is: "+radius + "miles");
+		var twoPointCircle = new google.maps.Circle({
+	      strokeColor: '#FF0000',
+	      strokeOpacity: 0.8,
+	      strokeWeight: 2,
+	      fillColor: '#FF0000',
+	      fillOpacity: 0.35,
+	      map: map,
+	      center: centerCoords,
+	      radius: radius * 1609
+	    });
+		socket.emit('sendYelpLinearBounds', centerCoords.lat(),centerCoords.lng(), radius);
+	}
+	else{
+		//3 or more marksers, draw polygon and search
+		// Construct the polygon.
+		  yelpArea = new google.maps.Polygon({
+		    paths: coordsArr,
+		    strokeColor: '#FF0000',
+		    strokeOpacity: 0.8,
+		    strokeWeight: 3,
+		    fillColor: '#FF0000',
+		    fillOpacity: 0.35
+		  });
+		  yelpArea.setMap(map);
 
-	// Construct the polygon.
-  yelpArea = new google.maps.Polygon({
-    paths: coordsArr,
-    strokeColor: '#FF0000',
-    strokeOpacity: 0.8,
-    strokeWeight: 3,
-    fillColor: '#FF0000',
-    fillOpacity: 0.35
-  });
-  yelpArea.setMap(map);
+			var centerCoords = new google.maps.LatLng(bounds.getCenter().lat(), bounds.getCenter().lng());
+			var centerMarker = new google.maps.Marker({
+			    position: centerCoords
+			});
+			centerMarker.setMap(map);
 
-	var centerCoords = new google.maps.LatLng(bounds.getCenter().lat(), bounds.getCenter().lng());
-	var centerMarker = new google.maps.Marker({
-	    position: centerCoords
-	});
-	centerMarker.setMap(map);
+			yelpRectangle = new google.maps.Rectangle({
+						bounds: bounds,
+						map: map,
+						fillColor: "#000000",
+						fillOpacity: 0,
+						strokeWeight: 0
+			});
 
-	yelpRectangle = new google.maps.Rectangle({
-				bounds: bounds,
-				map: map,
-				fillColor: "#000000",
-				fillOpacity: 0.2,
-				strokeWeight: 0
-	});
+			ne = yelpRectangle.getBounds().getNorthEast();
+		  	sw = yelpRectangle.getBounds().getSouthWest();
+		  	yelpBounds();
+	}
 
-	ne = yelpRectangle.getBounds().getNorthEast();
-  	sw = yelpRectangle.getBounds().getSouthWest();
-  	yelpBounds();
 });
 
 
 function yelpBounds(){
-  	console.log("Send yelp Bounds to Server...");
+  	console.log("Send yelp Polygon Bounds to Server...");
   	socket.emit('sendYelpBounds', ne.lat(),ne.lng(), sw.lat(), sw.lng());
 }
 
@@ -302,6 +350,21 @@ socket.on("shareLink", function(data){
 
 
 //Around Me
+$("#aroundBtn").click(function(e) {
+	var myLatlng = new google.maps.LatLng(myLat,myLng);
+	var cityCircle = new google.maps.Circle({
+	      strokeColor: '#FF0000',
+	      strokeOpacity: 0.8,
+	      strokeWeight: 2,
+	      fillColor: '#FF0000',
+	      fillOpacity: 0.35,
+	      map: map,
+	      center: myLatlng,
+	      radius: 25 * 1609
+	});
+	socket.emit('sendYelpLinearBounds', myLat,myLng, 25);
+});
+
 
 //errorAlert: deal with all kinds of errorMsg
 socket.on("errorAlert", function(data){
@@ -309,4 +372,23 @@ socket.on("errorAlert", function(data){
 	$('#error').popup('show');
 });
 
+//function library
+function getDistanceFromLatLonInMiles(lat1,lon1,lat2,lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat2-lat1);  // deg2rad below
+  var dLon = deg2rad(lon2-lon1); 
+  var a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in km
+  var miles = d *0.621371;
+  return miles;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
 

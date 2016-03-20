@@ -68,10 +68,6 @@ var chatSchema = new Schema({
   chatActive: Boolean
 });
 
-app.on('uncaughtException', function (err) {
-  console.log('Caught exception: ' + err);
-});
-
 io.on('connection', function(socket){
 	
 	var yelp = new Yelp({
@@ -121,6 +117,21 @@ io.on('connection', function(socket){
 		logger.info('A User Dicsonnected');
 	});
 
+
+	//1 or 2 people search
+	socket.on('sendYelpLinearBounds', function (centerLat, centerLng, radius){
+		logger.info("Going to search from center "+centerLat +", "+centerLng + "with radius: "+ radius + " miles");
+		yelp.search({ term: 'food', ll: centerLat+","+centerLng, radius: radius })
+		.then(function (data) {
+		  logger.info(data);
+		  socket.emit('getApiData', data);
+		})
+		.catch(function (err) {
+		  logger.error(err);
+		});
+	});
+
+	//3 or more than 3 people search
 	socket.on('sendYelpBounds', function (neLat, neLng, swLat, swLng) {
 	   //socket.emit('serverMessage', 'Got a message!');
 	   northeastLat = neLat;
@@ -140,6 +151,7 @@ io.on('connection', function(socket){
 		  logger.error(err);
 		});
 	});
+
 
 	//update userName and insert user into chat
 	socket.on('joinUsertoChat', function(data){
@@ -194,6 +206,7 @@ io.on('connection', function(socket){
 			//That's it
 		}
 	});
+
 
 	//send chat msg to the users in their own groups
 	socket.on('chatInput', function(data){
@@ -258,8 +271,8 @@ io.on('connection', function(socket){
     			});
             }
         });
-		//io.emit('chatOutput', [data]);
 	});
+
 
 	//create a chat room and share link
 	socket.on('createRecord', function(data){
@@ -322,7 +335,7 @@ io.on('connection', function(socket){
 			    }
 			    else{
 			    	logger.info("Chat Created: "+res.id);
-			    	var link = "http://talkover.party:3000"+'/joinChat/'+res.id;
+			    	var link = "http://talkover.party"+'/joinChat/'+res.id;
 			    	 	var date = new Date();
 					    date.setTime(date.getTime()+(60*1000)); 
 					    var expires = "; expires="+date.toGMTString();
@@ -338,14 +351,14 @@ io.on('connection', function(socket){
 });
 
 
-server.listen(3000, function () {
-  logger.info('TalkOverParty Server Starts on Port 3000!');
+server.listen(80, function () {
+  logger.info('TalkOverParty Server Starts on Port 80!');
 });
 
 
 app.get('/joinChat/:chatId', function(req,res){
 	res.type('text/plain');
-	res.redirect('http://talkover.party:3000/'+req.params.chatId)
+	res.redirect('http://talkover.party/'+req.params.chatId)
 });
 
 app.get('/:chatId', function(req,res){
