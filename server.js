@@ -79,9 +79,40 @@ io.on('connection', function(socket){
 
 
 	socket.on('send:coords', function(data){
-		logger.info(data);
-		socket.broadcast.emit('load:coords', data);
+		//need to be comment this log, cuz it will be triggered when user does any move
+		logger.info(data.id + " from chat room: "+ data.chatId +" send geo info from: "+data.coords['lat'] + ", "+data.coords['lng']);
+
+		//get socket from thr chat room
+		var conn = mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {
+			    if(err){
+				    logger.error(err);
+				    socket.emit('errorAlert', err);
+			    }
+			    else{
+					//console.log("User Name Session Set: "+session);
+					logger.info("MongoDB Connected for send GEO info!");
+				}
+			});
+
+		var Chat = conn.model('Chat', chatSchema);		
+		Chat.findOne({'_id': new ObjectId(data.chatId)}, function(err, chat) {
+            if (err){
+            	logger.error("Error occured while looking for chat room: "+err);
+        		socket.emit('errorAlert', err);
+            }
+            else{
+            	//emit msg to each chatee
+            	for(var i=0; i<chat.chatUsers.length; i++)
+            	{
+            		logger.info("Send GEO info to: " + data.id +" with socketId:" + chat.chatUsers[i].socketId);
+            		//send to client
+            		io.to(chat.chatUsers[i].socketId).emit('load:coords', data);
+            	}
+            }
+        });
 	});
+
+
 	socket.on('disconnect', function(){
 		logger.info('A User Dicsonnected');
 	});
@@ -197,7 +228,7 @@ io.on('connection', function(socket){
             		var data = {userName: name, message: message, msgDate: new Date()};
             		logger.info("Send message to: " + name +" with socketId:" + chat.chatUsers[i].socketId);
             		//send to client
-            		socket.to(chat.chatUsers[i].socketId).emit('chatOutput', data);
+            		io.to(chat.chatUsers[i].socketId).emit('chatOutput', data);
             	}
 
             	//store in mongodb

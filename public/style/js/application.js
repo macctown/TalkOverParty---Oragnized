@@ -72,7 +72,7 @@ function positionSuccess(position){
 	doc.on("mousemove", function(){
 		active = true;
 		sentData = {
-			chatId: $('chatIdInput').val(),
+			chatId: $('#chatIdInput').val(),
 			id: userId,
 			active: active,
 			coords:[{
@@ -81,7 +81,7 @@ function positionSuccess(position){
 				acr: acr
 			}]
 		}
-		if($('chatIdInput').val()){
+		if($('#chatIdInput').val()){
 			socket.emit("send:coords", sentData);
 		}
 	});
