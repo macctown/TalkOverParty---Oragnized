@@ -68,6 +68,10 @@ var chatSchema = new Schema({
   chatActive: Boolean
 });
 
+app.on('uncaughtException', function (err) {
+  console.log('Caught exception: ' + err);
+});
+
 io.on('connection', function(socket){
 	
 	var yelp = new Yelp({
@@ -80,7 +84,7 @@ io.on('connection', function(socket){
 
 	socket.on('send:coords', function(data){
 		//need to be comment this log, cuz it will be triggered when user does any move
-		logger.info(data.id + " from chat room: "+ data.chatId +" send geo info from: "+data.coords['lat'] + ", "+data.coords['lng']);
+		//logger.info(data.id + " from chat room: "+ data.chatId +" send geo info from: "+data.coords['lat'] + ", "+data.coords['lng']);
 
 		//get socket from thr chat room
 		var conn = mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {

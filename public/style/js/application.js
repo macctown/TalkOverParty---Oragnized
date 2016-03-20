@@ -4,7 +4,6 @@ var connects = {};
 var markers = {};
 var active = false;
 var socket = io.connect("/");
-var bounds = new google.maps.LatLngBounds();
 var myLatlng;
 var yelpRectangle;
 var yelpArea;
@@ -45,7 +44,7 @@ else{
 		$("#map").text("Your browser is out of fashion, there\'s no geolocation!");
 }
 
-
+var bounds = new google.maps.LatLngBounds();
 function initMap(){
 		window.map = new google.maps.Map(document.getElementById('map'), {
 		center: {lat: 42.428996, lng: -71.077269},
@@ -230,14 +229,16 @@ $("#sendBtn").click(function(e) {
 
         if(!message){
         		var msg = "Message can't be empty...";
-        		$('#errMsg').html("<span id='errContent'> "+msg+"</span>");
-				$('#error').popup('show');
+        		//$('#errMsg').html("<span id='errContent'> "+msg+"</span>");
+				//$('#error').popup('show');
+				$.notify(msg);
         }
         else{
         	if(!userId || !chatId || !userName){
-        		var msg = "Message can't be send, please try later...";
-        		$('#errMsg').html("<span id='errContent' "+msg+"</span>");
-				$('#error').popup('show');
+        		var msg = "Message can't be send, please refresh page and try later...";
+        		//$('#errMsg').html("<span id='errContent' "+msg+"</span>");
+				//$('#error').popup('show');
+				$.notify(msg);
 	        }
 	        else{
 	        	socket.emit('chatInput', {
@@ -246,6 +247,7 @@ $("#sendBtn").click(function(e) {
 	                "chatId":chatId,
 	                "message":message
 	        	});
+	        	$("#txtInput").val("");
 	        }
         }
         
