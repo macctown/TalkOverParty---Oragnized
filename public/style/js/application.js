@@ -72,6 +72,7 @@ function positionSuccess(position){
 	doc.on("mousemove", function(){
 		active = true;
 		sentData = {
+			chatId: $('chatIdInput').val(),
 			id: userId,
 			active: active,
 			coords:[{
@@ -80,7 +81,9 @@ function positionSuccess(position){
 				acr: acr
 			}]
 		}
-		socket.emit("send:coords", sentData);
+		if($('chatIdInput').val()){
+			socket.emit("send:coords", sentData);
+		}
 	});
 }
 
@@ -249,18 +252,24 @@ $("#sendBtn").click(function(e) {
 });
 
 socket.on("chatOutput", function(data){
-if(data.length){
-		for(var x=0; x<data.length; x=x+1){
-			var msg = document.createElement('div');
-			msg.setAttribute('class','chat-message');
-			msg.textContent = data[x].username + ': ' + data[x].message;
+	console.log("Message Received from: "+data.userName);
+	var msg = document.createElement('div');
+	msg.setAttribute('class','chat-message');
 
-			//append 
-			messages.appendChild(msg);
-			messages.insertBefore(msg, messages.firstChild);
-		}
-	}
+	var chatUser = document.createElement('span');
+	chatUser.setAttribute('class','chat-person');
+	chatUser.textContent = data.userName;
 
+	var chatMsg = document.createElement('span');
+	chatMsg.textContent = ": "+data.message;
+
+	msg.appendChild(chatUser);
+	msg.appendChild(chatMsg);
+	
+
+	//append 
+	messages.appendChild(msg);
+	messages.insertBefore(msg, messages.firstChild);
 });
 
 

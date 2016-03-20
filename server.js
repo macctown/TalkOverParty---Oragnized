@@ -9,6 +9,7 @@ var cookieParser = require('cookie-parser')
 const MongoStore = require('connect-mongo')(session);
 var Yelp = require('yelp');
 var mongoose = require('mongoose');
+var ObjectId = require('mongoose').Types.ObjectId; 
 var uuid = require('node-uuid');
 var winston = require('winston');
 var Schema = mongoose.Schema;
@@ -55,6 +56,7 @@ var userSchema = new Schema({
 
 var msgSchema = new Schema({
   userId: String,
+  userName: String,
   msgContent: String,
   msgDate: Date
 });
@@ -65,11 +67,6 @@ var chatSchema = new Schema({
   chatCreateDate: Date,
   chatActive: Boolean
 });
-
-
-var Chat = mongoose.model('Chat', chatSchema);
-var User = mongoose.model('User', userSchema);
-var Message = mongoose.model('Message', msgSchema);
 
 io.on('connection', function(socket){
 	
@@ -82,7 +79,7 @@ io.on('connection', function(socket){
 
 
 	socket.on('send:coords', function(data){
-		logger.info(data.userId+" "+data.coords.lat);
+		logger.info(data);
 		socket.broadcast.emit('load:coords', data);
 	});
 	socket.on('disconnect', function(){
@@ -114,20 +111,24 @@ io.on('connection', function(socket){
 		var userId = data.userId;
 		var chatId = data.chatId;
 		var userName = data.userName;
-		mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {
+		var conn = mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {
 			    if(err){
 				    logger.error(err);
 				    socket.emit('errorAlert', err);
 			    }
 			    else{
 					//console.log("User Name Session Set: "+session);
-					logger.info("MongoDB Connected after saveName!");
+					logger.info("MongoDB Connected in fucntion: joinUsertoChat!");
 				}
 			});
 
+
+		var Chat = conn.model('Chat', chatSchema);
+		var User = conn.model('User', userSchema);
+
 		if(chatId != ""){
 
-			logger.info('User '+data.userId+" connected and going to join chat: "+chatId);
+			logger.info('User '+data.userId+" connected and going to join chat: "+chatId + "with socket: " + socket.id);
 			var newUser = new User({
 				userId: userId,
 				socketId: socket.id
@@ -162,14 +163,72 @@ io.on('connection', function(socket){
 	//send chat msg to the users in their own groups
 	socket.on('chatInput', function(data){
 		var name = data.userName,
-			message = data.message;
-		logger.info(data.userId, name, message);
+			message = data.message,
+			userId = data.userId,
+			chatId = data.chatId;
+
+		logger.info("userId: "+ userId +" userName: "+ name + " send message: " +message);
+		logger.info("Find users in chat Room: " + chatId);
+
+		var conn = mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {
+			    if(err){
+				    logger.error(err);
+				    socket.emit('errorAlert', err);
+			    }
+			    else{
+					//console.log("User Name Session Set: "+session);
+					logger.info("MongoDB Connected after saveName!");
+				}
+			});
+
+
+		var Chat = conn.model('Chat', chatSchema);
+		var Msg = conn.model('Msg', msgSchema);
+		
+		Chat.findOne({'_id': new ObjectId(chatId)}, function(err, chat) {
+            if (err){
+            	logger.error("Error occured while looking for chat room: "+err);
+        		socket.emit('errorAlert', err);
+            }
+            else{
+            	//emit msg to each chatee
+            	for(var i=0; i<chat.chatUsers.length; i++)
+            	{
+            		var data = {userName: name, message: message, msgDate: new Date()};
+            		logger.info("Send message to: " + name +" with socketId:" + chat.chatUsers[i].socketId);
+            		//send to client
+            		socket.to(chat.chatUsers[i].socketId).emit('chatOutput', data);
+            	}
+
+            	//store in mongodb
+        		var newMsg  = new Msg({
+        			userId: userId,
+        			userName: name,
+					msgContent: message,
+					msgDate: new Date()
+        		});
+
+        		Chat.update(
+				{_id: chatId}, 
+				{$addToSet:{chatContent:newMsg}}, 
+				{safe: true, upsert: true, unique: true},
+    			function(err, model) {	
+    				if(err){
+	        			logger.error("Error when save message into chat: "+err);
+	        			socket.emit('errorAlert', err);
+    				}
+    				else{
+        				logger.info("User "+userId+" message saved into chat successfully");
+    				}      			
+    			});
+            }
+        });
 		//io.emit('chatOutput', [data]);
 	});
 
 	//create a chat room and share link
 	socket.on('createRecord', function(data){
-		console.log("Begin to create record for chat...");
+		logger.info("Begin to create record for chat...");
 		var userId = data.userId;
 		var userSocketId = socket.id;
 		var userName = data.userName;
@@ -190,17 +249,7 @@ io.on('connection', function(socket){
 
 			var currentDate = new Date();
 
-			var newChat = new Chat({
-				chatCreateDate: currentDate,
-	  			chatActive: 1
-			});
-
-			var chatCreator = new User({
-				userId: userId,
-				socketId: socket.id
-			});
-
-			mongoose.connect('mongodb://127.0.0.1:27017/talkParty', function(err) {
+			var conn = mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {
 			    if(err){
 				    logger.error(err);
 				    socket.emit('errorAlert', err);
@@ -209,6 +258,22 @@ io.on('connection', function(socket){
 					logger.info("MongoDB Connected when create new chat!");
 				}
 			});
+
+			
+			var Chat = conn.model('Chat', chatSchema);
+			var User = conn.model('User', userSchema);
+
+
+			var chatCreator = new User({
+				userId: userId,
+				socketId: socket.id
+			});
+
+			var newChat = new Chat({
+				chatCreateDate: currentDate,
+	  			chatActive: 1
+			});
+
 
 			newChat.chatUsers.push(chatCreator);
 			newChat.save(function (err, res) {
@@ -286,7 +351,7 @@ app.get('/', function(req,res){
 	else{	
 		var newuserId = uuid.v4();
 		res.cookie('cUserId',newuserId, { maxAge: 60000, httpOnly: true });
-		logger.info("Index Page - cookie userId Generated and set!");
+		logger.info("Index Page - cookie userId Generated and set: "+newuserId);
 		data = {userId:newuserId};
 	}
 
