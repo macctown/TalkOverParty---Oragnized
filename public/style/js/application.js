@@ -187,7 +187,7 @@ $( "#bbulink" ).click(function() {
 		centerMarker.setMap(map);*/
 		var radius = getDistanceFromLatLonInMiles(coordsArr[0].lat, coordsArr[0].lng, centerCoords.lat(), centerCoords.lng());
 		console.log("search radius is: "+radius + "miles");
-		var twoPointCircle = new google.maps.Circle({
+		yelpArea = new google.maps.Circle({
 	      strokeColor: '#FF0000',
 	      strokeOpacity: 0.8,
 	      strokeWeight: 2,
@@ -195,7 +195,7 @@ $( "#bbulink" ).click(function() {
 	      fillOpacity: 0.35,
 	      map: map,
 	      center: centerCoords,
-	      radius: radius * 1609
+	      radius: radius * 1069
 	    });
 		socket.emit('sendYelpLinearBounds', centerCoords.lat(),centerCoords.lng(), radius);
 	}
@@ -240,14 +240,17 @@ function yelpBounds(){
 }
 
 
-socket.on("getApiData", function(data){
+socket.on("getApiDataInPoly", function(data){
+	console.log(data['businesses']);
 	yelpResTmp = data['businesses'];
 
 	for(j=0; j<yelpResTmp.length; j++){
-		console.log(yelpResTmp[j]['id']+"Lat:"+yelpResTmp[j]['location']['coordinate'].latitude+" Lng:"+yelpResTmp[j]['location']['coordinate'].longitude);
+		console.log(yelpResTmp[j]['id']+" Lat:"+yelpResTmp[j]['location']['coordinate'].latitude+" Lng:"+yelpResTmp[j]['location']['coordinate'].longitude);
 		var resLatLng = new google.maps.LatLng({lat:yelpResTmp[j]['location']['coordinate'].latitude, lng:yelpResTmp[j]['location']['coordinate'].longitude}); 
+		console.log("YelpArea set: "+yelpArea);
 		var bool = google.maps.geometry.poly.containsLocation(resLatLng, yelpArea);
 		console.log(yelpResTmp[j]['id']+":"+bool);
+
 		if(bool == true){
 			var yelpTmpMarker = new google.maps.Marker({
 				    position: resLatLng
@@ -256,6 +259,22 @@ socket.on("getApiData", function(data){
 			yelpTmpMarker.setMap(map);
 			yelpFilterRes.push(yelpResTmp[j]);
 		}
+	}
+
+});
+
+socket.on("getApiDataInCircle", function(data){
+	yelpResTmp = data['businesses'];
+
+	for(j=0; j<yelpResTmp.length; j++){
+		var resLatLng = new google.maps.LatLng({lat:yelpResTmp[j]['location']['coordinate'].latitude, lng:yelpResTmp[j]['location']['coordinate'].longitude}); 
+        console.log(yelpResTmp[j]['id']+" Lat:"+yelpResTmp[j]['location']['coordinate'].latitude+" Lng:"+yelpResTmp[j]['location']['coordinate'].longitude);
+		var yelpTmpMarker = new google.maps.Marker({
+			    position: resLatLng
+		});
+		yelpMarker[yelpResTmp[j]['id']] = yelpTmpMarker;
+		yelpTmpMarker.setMap(map);
+		yelpFilterRes.push(yelpResTmp[j]);     
 	}
 
 });
@@ -352,7 +371,7 @@ socket.on("shareLink", function(data){
 //Around Me
 $("#aroundBtn").click(function(e) {
 	var myLatlng = new google.maps.LatLng(myLat,myLng);
-	var cityCircle = new google.maps.Circle({
+	yelpArea = new google.maps.Circle({
 	      strokeColor: '#FF0000',
 	      strokeOpacity: 0.8,
 	      strokeWeight: 2,
@@ -360,9 +379,9 @@ $("#aroundBtn").click(function(e) {
 	      fillOpacity: 0.35,
 	      map: map,
 	      center: myLatlng,
-	      radius: 25 * 1609
+	      radius: 10 * 1069
 	});
-	socket.emit('sendYelpLinearBounds', myLat,myLng, 25);
+	socket.emit('sendYelpLinearBounds', myLat,myLng, 10);
 });
 
 
