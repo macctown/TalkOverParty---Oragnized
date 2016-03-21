@@ -121,7 +121,7 @@ io.on('connection', function(socket){
 	//1 or 2 people search
 	socket.on('sendYelpLinearBounds', function (centerLat, centerLng, radius){
 		logger.info("Going to search from center "+centerLat +", "+centerLng + "with radius: "+ radius + " miles");
-		var radiusInMeter = radius * 1069;
+		var radiusInMeter = radius * 1069.34;
 		yelp.search({ term: 'food', ll: centerLat+","+centerLng, radius_filter: radiusInMeter })
 		.then(function (data) {
 		  logger.info("Yelp API Data: "+Object.keys(data));
@@ -288,7 +288,7 @@ io.on('connection', function(socket){
 		if(socket.handshake.headers.cookie.toString().indexOf('cSharedLink') > -1){
 			var cleanCookie = decodeURIComponent(socket.handshake.headers.cookie.toString());
 			var sharedLinkLocate = cleanCookie.search('cSharedLink');
-			var sharedLink = cleanCookie.substr(sharedLinkLocate+12, 60);
+			var sharedLink = cleanCookie.substr(sharedLinkLocate+12, 55);
 			logger.info("User Has Shared Link Before: "+sharedLink);
 			socket.emit('shareLink', decodeURIComponent(sharedLink)); 
 		}

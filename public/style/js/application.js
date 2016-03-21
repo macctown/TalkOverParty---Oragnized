@@ -14,7 +14,18 @@ var yelpFilterRes = [];
 var yelpMarker = [];
 var myLat;
 var myLng;
-
+var iconBase = 'http://talkover.party/img/icon/';
+var icons = {
+  user: {
+    icon: iconBase + 'user.png'
+  },
+  restaurant: {
+    icon: iconBase + 'restaurant.png'
+  },
+  bar: {
+    icon: iconBase + 'bar.png'
+  }
+};
 
 var userId = $('#userIdInput').val();
 		//set userID cookie
@@ -31,6 +42,7 @@ $("#nameTxn").val(userId);
 $("#nameValue").val(userId);
 
 socket.on("load:coords", function(data){
+
 	console.log("load:coords:"+data.id);
 	if(!(data.id in connects)){
 		setMarker(data);
@@ -72,7 +84,8 @@ function positionSuccess(position){
 	console.log("My Coords is :"+lat+", "+lng);
 	var myLatlng = new google.maps.LatLng(lat, lng);
 	var userMarker = new google.maps.Marker({
-		    position: myLatlng
+		    position: myLatlng,
+		    icon: icons['user'].icon
 	});
 	markers[userId] = userMarker;
 	userMarker.setMap(map);
@@ -110,7 +123,8 @@ function setMarker(data){
 	for(i=0; i<data.coords.length; i++){
 		var myLatlng = new google.maps.LatLng(data.coords[i].lat, data.coords[i].lng);
 		var userMarker = new google.maps.Marker({
-		    position: myLatlng
+		    position: myLatlng,
+			icon: icons['user'].icon
 		});
 		console.log("Marker["+data.id+"] is:"+data.coords[i].lat+", "+data.coords[i].lng);
 		userMarker.setMap(map);
@@ -179,12 +193,11 @@ $( "#bbulink" ).click(function() {
 		$.notify(msg);
 	}
 	else if(coordsArr.length == 2){
+		if(yelpArea){
+			refereshYelpArea();
+		}
 		//2 markers, draw a line and search
 		var centerCoords = new google.maps.LatLng(bounds.getCenter().lat(), bounds.getCenter().lng());
-		/*var centerMarker = new google.maps.Marker({
-		    position: centerCoords
-		});
-		centerMarker.setMap(map);*/
 		var radius = getDistanceFromLatLonInMiles(coordsArr[0].lat, coordsArr[0].lng, centerCoords.lat(), centerCoords.lng());
 		console.log("search radius is: "+radius + "miles");
 		yelpArea = new google.maps.Circle({
@@ -195,11 +208,14 @@ $( "#bbulink" ).click(function() {
 	      fillOpacity: 0.35,
 	      map: map,
 	      center: centerCoords,
-	      radius: radius * 1069
+	      radius: radius * 1069.34
 	    });
 		socket.emit('sendYelpLinearBounds', centerCoords.lat(),centerCoords.lng(), radius);
 	}
 	else{
+		if(yelpArea){
+			refereshYelpArea();
+		}
 		//3 or more marksers, draw polygon and search
 		// Construct the polygon.
 		  yelpArea = new google.maps.Polygon({
@@ -230,6 +246,7 @@ $( "#bbulink" ).click(function() {
 		  	sw = yelpRectangle.getBounds().getSouthWest();
 		  	yelpBounds();
 	}
+	map.fitBounds(yelpArea.getBounds());
 
 });
 
@@ -241,6 +258,10 @@ function yelpBounds(){
 
 
 socket.on("getApiDataInPoly", function(data){
+	if((yelpMarker)||(yelpFilterRes)){
+		refreshYelpResult();
+	}
+
 	console.log(data['businesses']);
 	yelpResTmp = data['businesses'];
 
@@ -252,29 +273,34 @@ socket.on("getApiDataInPoly", function(data){
 		console.log(yelpResTmp[j]['id']+":"+bool);
 
 		if(bool == true){
-			var yelpTmpMarker = new google.maps.Marker({
-				    position: resLatLng
+			yelpMarker[yelpResTmp[j]['id']] = new google.maps.Marker({
+				    position: resLatLng,
+				    icon: icons['restaurant'].icon
 			});
-			yelpMarker[yelpResTmp[j]['id']] = yelpTmpMarker;
-			yelpTmpMarker.setMap(map);
-			yelpFilterRes.push(yelpResTmp[j]);
+			//yelpMarker[yelpResTmp[j]['id']].setMap(map);
+			yelpFilterRes.push(yelpMarker[yelpResTmp[j]['id']]);
+			yelpFilterRes[yelpFilterRes.length-1].setMap(map);
 		}
 	}
-
 });
 
 socket.on("getApiDataInCircle", function(data){
+	if((yelpMarker)||(yelpFilterRes)){
+		refreshYelpResult();
+	}
+
 	yelpResTmp = data['businesses'];
 
 	for(j=0; j<yelpResTmp.length; j++){
 		var resLatLng = new google.maps.LatLng({lat:yelpResTmp[j]['location']['coordinate'].latitude, lng:yelpResTmp[j]['location']['coordinate'].longitude}); 
         console.log(yelpResTmp[j]['id']+" Lat:"+yelpResTmp[j]['location']['coordinate'].latitude+" Lng:"+yelpResTmp[j]['location']['coordinate'].longitude);
-		var yelpTmpMarker = new google.maps.Marker({
-			    position: resLatLng
+		yelpMarker[yelpResTmp[j]['id']] = new google.maps.Marker({
+			    position: resLatLng,
+			    icon: icons['restaurant'].icon
 		});
-		yelpMarker[yelpResTmp[j]['id']] = yelpTmpMarker;
-		yelpTmpMarker.setMap(map);
-		yelpFilterRes.push(yelpResTmp[j]);     
+		//yelpMarker[yelpResTmp[j]['id']].setMap(map);
+		yelpFilterRes.push(yelpMarker[yelpResTmp[j]['id']]);   
+		yelpFilterRes[yelpFilterRes.length-1].setMap(map);  
 	}
 
 });
@@ -296,15 +322,11 @@ $("#sendBtn").click(function(e) {
 
         if(!message){
         		var msg = "Message can't be empty...";
-        		//$('#errMsg').html("<span id='errContent'> "+msg+"</span>");
-				//$('#error').popup('show');
 				$.notify(msg);
         }
         else{
         	if(!userId || !chatId || !userName){
         		var msg = "Message can't be send, please refresh page and try later...";
-        		//$('#errMsg').html("<span id='errContent' "+msg+"</span>");
-				//$('#error').popup('show');
 				$.notify(msg);
 	        }
 	        else{
@@ -334,7 +356,6 @@ socket.on("chatOutput", function(data){
 
 	msg.appendChild(chatUser);
 	msg.appendChild(chatMsg);
-	
 
 	//append 
 	messages.appendChild(msg);
@@ -370,6 +391,13 @@ socket.on("shareLink", function(data){
 
 //Around Me
 $("#aroundBtn").click(function(e) {
+	if(yelpArea){
+		refereshYelpArea();
+	}
+
+	if((yelpMarker)||(yelpFilterRes)){
+		refreshYelpResult();
+	}
 	var myLatlng = new google.maps.LatLng(myLat,myLng);
 	yelpArea = new google.maps.Circle({
 	      strokeColor: '#FF0000',
@@ -379,8 +407,9 @@ $("#aroundBtn").click(function(e) {
 	      fillOpacity: 0.35,
 	      map: map,
 	      center: myLatlng,
-	      radius: 10 * 1069
+	      radius: 10 * 1069.34
 	});
+	map.fitBounds(yelpArea.getBounds());
 	socket.emit('sendYelpLinearBounds', myLat,myLng, 10);
 });
 
@@ -409,5 +438,23 @@ function getDistanceFromLatLonInMiles(lat1,lon1,lat2,lon2) {
 
 function deg2rad(deg) {
   return deg * (Math.PI/180)
+}
+
+function refereshYelpArea(){
+	yelpArea.setMap(null);
+	yelpArea = null;
+}
+
+function refreshYelpResult(){
+
+	yelpMarker = [];
+
+	for(var child=0;child<yelpFilterRes.length;child++){
+		console.log("yelpFilterRes child: " + yelpFilterRes[child]);
+		yelpFilterRes[child].setMap(null);
+	}
+	yelpFilterRes = [];
+
+	yelpResTmp = [];
 }
 
