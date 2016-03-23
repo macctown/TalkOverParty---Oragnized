@@ -4,6 +4,22 @@
 <input id="chatIdInput" type="hidden" value="{{chatId}}">
 <input id="userNameInput" type="hidden" value="{{userName}}">
 <input id="sharedLink" type="hidden" value="{{sharedLink}}">
+
+<!-- Rightbar -->
+<span class='moreicon glyphicon glyphicon-align-justify' id="listOpen"></span>
+
+<div class='overlayp panel'  id="resultPanel">
+<span class='close glyphicon glyphicon-remove' id="listClose"></span>
+<div id="yelpResult">
+        <div class="addon">
+          <p>What Yelp Says...</p>
+          <ul id="resultList">
+          </ul>
+        </div>
+    </div>
+</div>
+
+
   <!-- Sidebar -->
         <div id="sidebar-wrapper">
             <ul class="sidebar-nav">
@@ -105,6 +121,7 @@
                       scrolllock: true,
                       blur: true
                     });
+
                 });
 
 
@@ -163,6 +180,23 @@
         e.preventDefault();
         $('#link').popup('hide');
     });
+
+
+    $('#listClose').click(function(){
+        $('.overlayp').removeClass('active');
+        $('.moreicon').removeClass('active');
+      });
+
+    $('#listOpen').click(function(){
+        if(yelpArea){
+            $('.overlayp').addClass('active');
+            $('.moreicon').toggleClass('active');        
+        }
+        else{
+            var msg = "No result from yelp, please try [Around Me] Or [Between Us]";
+            $.notify(msg);
+        }
+      });
     </script>
 
 <script src="/socket.io/socket.io.js"></script>

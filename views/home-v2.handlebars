@@ -1,0 +1,124 @@
+<div id="map"></div>
+<script>
+  var map;
+  function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: {lat: -34.397, lng: 150.644},
+      zoom: 8
+    });
+  }
+</script>
+<div class="chat-messages"></div>
+<div class="input-group">
+  <input type="text" class="form-control" placeholder="Type your message..." id="txtInput">
+  <span class="input-group-btn">
+    <button class="btn btn-danger" type="button" id="sendBtn">Send</button>
+  </span>
+</div>
+<a href="#menu-toggle" class="btn btn-default" id="menu-toggle">
+    <span class="glyphicon glyphicon-cog"></span>
+</a>
+
+<div id="fade" class="well popupwindow">
+    <h4>Set Your Name in Chat</h4>
+    <span>Name: </span><input type="text" placeholder="Type your name" id="nameTxn"><br><br>
+    <input type="hidden" id="nameValue">
+    <button class="btn btn-default" id="saveName">Save</button>
+</div>
+
+<div id="link" class="well popupwindow">
+    <h4>Here's the LINK</h4>
+    <span>Share with your friends: </span><br>
+    <div id="content"></div>
+    <br><br>
+    <button class="btn btn-default" id="copyLink">Cpoy</button>
+    <button class="btn btn-default" id="closeName">Close</button>
+</div>
+
+<div id="error" class="well popupwindow">
+    <h4>Talk Cannot Over Party</h4>
+    <span>Your party encounter some error: </span>
+    <div id="errMsg"></div>
+    <br><span>Please try later...</span>
+    <br><br>
+    <button class="btn btn-default" id="cancelName">Close</button>
+</div>
+
+<script>
+$(document).ready(function () {
+
+    $('#fade').popup({
+      transition: 'all 0.3s',
+      scrolllock: true,
+      blur: false,
+      autoopen: true
+    });
+
+    $('#link').popup({
+        transition: 'all 0.3s',
+        scrolllock: true,
+        blur: true
+    });
+
+    $('#error').popup({
+      transition: 'all 0.3s',
+      scrolllock: true,
+      blur: true
+    });
+});
+
+
+
+</script>
+<!-- /#wrapper -->
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/style/js/bootstrap.min.js"></script>
+
+<!-- Menu Toggle Script -->
+<script>
+$("#menu-toggle").click(function(e) {
+    e.preventDefault();
+    $("#wrapper").toggleClass("toggled");
+});
+
+$("#saveName").click(function(e) {
+    e.preventDefault();
+    $("#nameValue").val($("#nameTxn").val());
+    $("#userNameInput").val($("#nameTxn").val());
+    $('#fade').popup('hide');
+    var chatId = $("#chatIdInput").val();
+    var userName = $("#nameValue").val();
+    var userId = $("#nameValue").val();
+    if(chatId!=""){
+        //insert user to chatUser
+        socket.emit('joinUsertoChat', {
+            "userId":$("#userIdInput").val(),
+            "userName":userName,
+            "chatId":chatId
+        });
+    }
+    else{
+        var date = new Date();
+        date.setTime(date.getTime()+(60*1000)); 
+        var expires = "; expires="+date.toGMTString();
+        document.cookie = "cUserName="+userName+expires+"; path=/";
+    }
+});
+
+$("#cancelName").click(function(e) {
+    e.preventDefault();
+    $("#nameTxn").val($("#nameValue").val());
+    $('#fade').popup('hide');
+    $('#error').popup('hide');
+});
+
+$("#closeName").click(function(e) {
+    e.preventDefault();
+    $('#link').popup('hide');
+});
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/style/js/application.js"></script>
+<script src="/style/js/yelp.js"></script>

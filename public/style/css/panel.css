@@ -1,0 +1,86 @@
+
+body {
+  margin: 0;
+  text-align: center;
+}
+
+.outer { position: relative; }
+
+.close {
+  position: absolute;
+  display: inline-block;
+  padding: 10px 15px;
+  color: #fff;
+  background: #d30043;
+  font-size: 15px !important;
+  right: 5px;
+  top: 5px;
+}
+
+.main {
+  padding: 20px 0;
+  width: 100%;
+  z-index: 2;
+  position: relative;
+  background: #002838;
+  transition: margin-right .2s ease-in;
+  -moz-transition: margin-right .2s ease-in;
+  -webkit-transition: margin-right .2s ease-in;
+  height: 600px;
+}
+
+.panel {
+  background: #333;
+  width: 300px;
+  color: #000;
+}
+
+/* Overlay */
+
+.overlayp {
+  height: 100%;
+  overflow-y: scroll;
+  z-index: 3;
+  position: absolute;
+  right: 0;
+  top: 0;
+  margin-right: -300px;
+  transition: margin-right .2s ease-in;
+  -moz-transition: margin-right .2s ease-in;
+  -webkit-transition: margin-right .2s ease-in;
+  display:none;
+}
+
+.overlayp.active {
+  margin-right: 0;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  height: 100%;
+  overflow: scroll;
+  display:block;
+}
+
+.moreicon{
+  z-index: 10;
+  position: absolute;
+  display: inline-block;
+  padding: 10px 15px;
+  color: #fff;
+  background: #d30043;
+  font-size: 15px !important;
+  right: 5px;
+  top: 5px;
+  cursor: pointer;
+}
+
+.moreicon.active{
+  z-index: 0;
+  position: absolute;
+  display: inline-block;
+  padding: 10px 15px;
+  color: #fff;
+  background: #d30043;
+  font-size: 15px !important;
+  right: 5px;
+  top: 5px;
+  cursor: pointer;
+}
