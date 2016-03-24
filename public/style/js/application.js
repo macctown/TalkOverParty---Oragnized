@@ -120,7 +120,7 @@ function positionSuccess(position){
 		if($('#chatIdInput').val()){
 			socket.emit("send:coords", sentData);
 		}
-	}, 5000);
+	}, 1000);
 }
 
 	doc.bind("mouseup mouseleave", function(){
@@ -142,6 +142,7 @@ function setMarker(data){
 		markers[data.id] = userMarker;
 		bounds.extend(userMarker.position);
 	}
+
 	map.fitBounds(bounds);
 	console.log("mapFitBounds:"+bounds);
  
@@ -184,87 +185,108 @@ function reBounds(){
 
 
 $( "#bbulink" ).click(function() {
+    $('#btwConditionInput').popup('show');
+    $('.overlayp').removeClass('active');
+    $('.moreicon').removeClass('active');
+});
+
+$("#btwYelpitBtn").click(function(e) {
 	console.log("click polygonBtn");
 
-  	var coordsArr = [];
-	for(var mark in markers){
-		var point = {lat: markers[mark].position.lat(), lng: markers[mark].position.lng()};
-		console.log("positionForPolygon: "+markers[mark].position.lat()+", "+markers[mark].position.lng());
-		coordsArr.push(point);
-	}
-	console.log(coordsArr.length + "markers on map now...");
-	if(coordsArr.length == 0){
-		//no marker on map, something wrong
-		var msg = "Map error occured, please refresh page and try later...";
+	var category = $('#btwCategoryTxn').val();
+	if(category == ""){
+		var msg = "Category can't be empty...";
 		$.notify(msg);
-	}
-	else if(coordsArr.length == 1){
-		//1 marker, search by radius
-		var msg = "You're the only one, please use [Around Me] function in menu";
-		$.notify(msg);
-	}
-	else if(coordsArr.length == 2){
-		if(yelpArea){
-			refereshYelpArea();
-		}
-		//2 markers, draw a line and search
-		var centerCoords = new google.maps.LatLng(bounds.getCenter().lat(), bounds.getCenter().lng());
-		var radius = getDistanceFromLatLonInMiles(coordsArr[0].lat, coordsArr[0].lng, centerCoords.lat(), centerCoords.lng());
-		console.log("search radius is: "+radius + "miles");
-		yelpArea = new google.maps.Circle({
-	      strokeColor: '#FF0000',
-	      strokeOpacity: 0.8,
-	      strokeWeight: 2,
-	      fillColor: '#FF0000',
-	      fillOpacity: 0.35,
-	      map: map,
-	      center: centerCoords,
-	      radius: radius * 1069.34
-	    });
-		socket.emit('sendYelpLinearBounds', centerCoords.lat(),centerCoords.lng(), radius);
 	}
 	else{
-		if(yelpArea){
-			refereshYelpArea();
+		var coordsArr = [];
+		for(var mark in markers){
+			var point = {lat: markers[mark].position.lat(), lng: markers[mark].position.lng()};
+			console.log("positionForPolygon: "+markers[mark].position.lat()+", "+markers[mark].position.lng());
+			coordsArr.push(point);
 		}
-		//3 or more marksers, draw polygon and search
-		// Construct the polygon.
-		  yelpArea = new google.maps.Polygon({
-		    paths: coordsArr,
-		    strokeColor: '#FF0000',
-		    strokeOpacity: 0.8,
-		    strokeWeight: 3,
-		    fillColor: '#FF0000',
-		    fillOpacity: 0.35
-		  });
-		  yelpArea.setMap(map);
-
+		console.log(coordsArr.length + "markers on map now...");
+		if(coordsArr.length == 0){
+			//no marker on map, something wrong
+			var msg = "Map error occured, please refresh page and try later...";
+			$.notify(msg);
+		}
+		else if(coordsArr.length == 1){
+			//1 marker, search by radius
+			var msg = "You're the only one, please use [Around Me] function in menu";
+			$.notify(msg);
+		}
+		else if(coordsArr.length == 2){
+			if(yelpArea){
+				refereshYelpArea();
+			}
+			//2 markers, draw a line and search
 			var centerCoords = new google.maps.LatLng(bounds.getCenter().lat(), bounds.getCenter().lng());
-			var centerMarker = new google.maps.Marker({
-			    position: centerCoords
-			});
-			centerMarker.setMap(map);
+			var radius = getDistanceFromLatLonInMiles(coordsArr[0].lat, coordsArr[0].lng, centerCoords.lat(), centerCoords.lng());
+			console.log("search radius is: "+radius + "miles");
+			yelpArea = new google.maps.Circle({
+		      strokeColor: '#FF0000',
+		      strokeOpacity: 0.8,
+		      strokeWeight: 2,
+		      fillColor: '#FF0000',
+		      fillOpacity: 0.35,
+		      map: map,
+		      center: centerCoords,
+		      radius: radius * 1069.34
+		    });
+			socket.emit('sendYelpLinearBounds', centerCoords.lat(),centerCoords.lng(), category, radius);
+		}
+		else{
+			if(yelpArea){
+				refereshYelpArea();
+			}
+			//3 or more marksers, draw polygon and search
+			// Construct the polygon.
+			  yelpArea = new google.maps.Polygon({
+			    paths: coordsArr,
+			    strokeColor: '#FF0000',
+			    strokeOpacity: 0.8,
+			    strokeWeight: 3,
+			    fillColor: '#FF0000',
+			    fillOpacity: 0.35
+			  });
+			  yelpArea.setMap(map);
 
-			yelpRectangle = new google.maps.Rectangle({
-						bounds: bounds,
-						map: map,
-						fillColor: "#000000",
-						fillOpacity: 0,
-						strokeWeight: 0
-			});
+				var centerCoords = new google.maps.LatLng(bounds.getCenter().lat(), bounds.getCenter().lng());
+				var centerMarker = new google.maps.Marker({
+				    position: centerCoords
+				});
+				centerMarker.setMap(map);
 
-			ne = yelpRectangle.getBounds().getNorthEast();
-		  	sw = yelpRectangle.getBounds().getSouthWest();
-		  	yelpBounds();
+				yelpRectangle = new google.maps.Rectangle({
+							bounds: bounds,
+							map: map,
+							fillColor: "#000000",
+							fillOpacity: 0,
+							strokeWeight: 0
+				});
+
+				ne = yelpRectangle.getBounds().getNorthEast();
+			  	sw = yelpRectangle.getBounds().getSouthWest();
+			  	yelpBounds(category);
+		}
+		$('#btwConditionInput').popup('hide');
+		$('#btwCategoryTxn').val("");
+		map.fitBounds(yelpArea.getBounds());
 	}
-	map.fitBounds(yelpArea.getBounds());
 
 });
 
 
-function yelpBounds(){
+$("#btwCancelCon").click(function(e) {
+	e.preventDefault();
+	$('#btwConditionInput').popup('hide');
+});
+
+
+function yelpBounds(category){
   	console.log("Send yelp Polygon Bounds to Server...");
-  	socket.emit('sendYelpBounds', ne.lat(),ne.lng(), sw.lat(), sw.lng());
+  	socket.emit('sendYelpBounds', ne.lat(),ne.lng(), sw.lat(), sw.lng(), category);
 }
 
 
@@ -297,121 +319,107 @@ socket.on("getApiDataInPoly", function(data){
 
 
 socket.on("getApiDataInCircle", function(data){
+
 	if((yelpMarker)||(yelpFilterRes)){
 		refreshYelpResult();
 	}
 
 	yelpResTmp = data['businesses'];
+	if(yelpResTmp.length == 0){
+		var msg = "No result found...";
+		$.notify(msg);
+	}
+	else{
+		for(j=0; j<yelpResTmp.length; j++){ 
 
-	for(j=0; j<yelpResTmp.length; j++){ 
+			var resRow = document.createElement('li');
+			resRow.setAttribute('class','clearfix');
+			resRow.setAttribute('id',yelpResTmp[j]['id']);
+			
 
-		var resRow = document.createElement('li');
-		resRow.setAttribute('class','clearfix');
-		resRow.setAttribute('id',yelpResTmp[j]['id']);
-		
+			var resLink = document.createElement('a');
+			resLink.setAttribute('target','_blank');
+			resLink.setAttribute('href',yelpResTmp[j]['url']);
 
-		var resLink = document.createElement('a');
-		resLink.setAttribute('target','_blank');
-		resLink.setAttribute('href',yelpResTmp[j]['url']);
+			var resImg = document.createElement('img');
+			resImg.setAttribute('class','round');
+			resImg.setAttribute('src',yelpResTmp[j]['image_url']);
 
-		var resImg = document.createElement('img');
-		resImg.setAttribute('class','round');
-		resImg.setAttribute('src',yelpResTmp[j]['image_url']);
+			var resRatingImg = document.createElement('img');
+			resRatingImg.setAttribute('src',yelpResTmp[j]['rating_img_url_small']);
 
-		var resRatingImg = document.createElement('img');
-		resRatingImg.setAttribute('src',yelpResTmp[j]['rating_img_url_small']);
-
-		var resInfo = document.createElement('div');
-		resInfo.setAttribute('class','legend-info');
-		resInfo.innerHTML = "<strong>"+yelpResTmp[j]['name']+"</strong><br>"+yelpResTmp[j]['location']['address'] + " " + yelpResTmp[j]['location']['city'] + " " + yelpResTmp[j]['location']['state_code'];
-                            
-
-		resRow.appendChild(resLink);
-		resLink.appendChild(resImg);
-		resLink.appendChild(resRatingImg);
-		resRow.appendChild(resInfo);
-
-
-		resRow.addEventListener("mouseover",function() {
-			var id = this.getAttribute('id');
-	        if (yelpMarker[id].getAnimation() == null || typeof yelpMarker[id].getAnimation() === 'undefined') {
-	            clearTimeout(bounceTimer);
-	            var that = this;            
-	            bounceTimer = setTimeout(function(){
-	                 yelpMarker[id].setAnimation(google.maps.Animation.BOUNCE);
-	            },
-	            500);
-	        }
-	    });
-
-	    resRow.addEventListener("mouseout",function() {
-	    	var id = this.getAttribute('id');
-	        if (yelpMarker[id].getAnimation() != null) {
-	            yelpMarker[id].setAnimation(null);
-	         }
-	         // If we already left marker, no need to bounce when timer is ready
-	         clearTimeout(bounceTimer);
-	    });
-
-		//append 
-		list.appendChild(resRow);
-
-		var myinfowindow = new google.maps.InfoWindow({
-		    content: resRow
-		  });
-
-		var resLatLng = new google.maps.LatLng({lat:yelpResTmp[j]['location']['coordinate'].latitude, lng:yelpResTmp[j]['location']['coordinate'].longitude}); 
-        console.log(yelpResTmp[j]['id']+" Lat:"+yelpResTmp[j]['location']['coordinate'].latitude+" Lng:"+yelpResTmp[j]['location']['coordinate'].longitude);
-		yelpMarker[yelpResTmp[j]['id']] = new google.maps.Marker({
-			    position: resLatLng,
-			    icon: icons['restaurant'].icon,
-			    infowindow: myinfowindow,
-			    optimized:false
-		});
-
-		//yelpMarker[yelpResTmp[j]['id']].setMap(map);
-		yelpFilterRes.push(yelpMarker[yelpResTmp[j]['id']]);   
-		yelpFilterRes[yelpFilterRes.length-1].setMap(map); 
+			var resInfo = document.createElement('div');
+			resInfo.setAttribute('class','legend-info');
+			resInfo.innerHTML = "<strong>"+yelpResTmp[j]['name']+"</strong><br>"+yelpResTmp[j]['location']['address'] + " " + yelpResTmp[j]['location']['city'] + " " + yelpResTmp[j]['location']['state_code'];
+	                   	
+			var resBtn = document.createElement('div');
+			resBtn.setAttribute('class','btn-group-vertical');
+			resBtn.innerHTML = "<button type='button' class='btn btn-default btn-xs'>More Info</button>";
 
 
-		yelpFilterRes[yelpFilterRes.length-1].addListener('click', function() {
-		    if(yelpInfoWindow){
-		    	yelpInfoWindow.close();
-		    }
-		    this.infowindow.open(map, this);
-		    yelpInfoWindow = this.infowindow;
-		});
+			resRow.appendChild(resLink);
+			resLink.appendChild(resImg);
+			resLink.appendChild(resRatingImg);
+			resInfo.appendChild(resBtn);
+			resRow.appendChild(resInfo);
 
 
+			resRow.addEventListener("mouseover",function() {
+				var id = this.getAttribute('id');
+		        if (yelpMarker[id].getAnimation() == null || typeof yelpMarker[id].getAnimation() === 'undefined') {
+		            clearTimeout(bounceTimer);
+		            var that = this;            
+		            bounceTimer = setTimeout(function(){
+		                 yelpMarker[id].setAnimation(google.maps.Animation.BOUNCE);
+		            },
+		            500);
+		        }
+		    });
 
-		/*
-		google.maps.event.addListener(yelpFilterRes[yelpFilterRes.length-1], 'mouseover', function() {
-	        if (this.getAnimation() == null || typeof this.getAnimation() === 'undefined') {
-	            clearTimeout(bounceTimer);
-	            var that = this;            
-	            bounceTimer = setTimeout(function(){
-	                 that.setAnimation(google.maps.Animation.BOUNCE);
-	            },
-	            500);
-	 
-	        }
-	    });
-	    
-	    google.maps.event.addListener(yelpFilterRes[yelpFilterRes.length-1], 'mouseout', function() {
-	         if (this.getAnimation() != null) {
-	            this.setAnimation(null);
-	         }
-	         // If we already left marker, no need to bounce when timer is ready
-	         clearTimeout(bounceTimer);
-	        
-	    });
-	    */
+		    resRow.addEventListener("mouseout",function() {
+		    	var id = this.getAttribute('id');
+		        if (yelpMarker[id].getAnimation() != null) {
+		            yelpMarker[id].setAnimation(null);
+		         }
+		         // If we already left marker, no need to bounce when timer is ready
+		         clearTimeout(bounceTimer);
+		    });
+
+			//append 
+			list.appendChild(resRow);
+
+			var myinfowindow = new google.maps.InfoWindow({
+			    content: resRow
+			  });
+
+			var resLatLng = new google.maps.LatLng({lat:yelpResTmp[j]['location']['coordinate'].latitude, lng:yelpResTmp[j]['location']['coordinate'].longitude}); 
+	        console.log(yelpResTmp[j]['id']+" Lat:"+yelpResTmp[j]['location']['coordinate'].latitude+" Lng:"+yelpResTmp[j]['location']['coordinate'].longitude);
+			yelpMarker[yelpResTmp[j]['id']] = new google.maps.Marker({
+				    position: resLatLng,
+				    icon: icons['restaurant'].icon,
+				    infowindow: myinfowindow,
+				    optimized:false
+			});
+
+			//yelpMarker[yelpResTmp[j]['id']].setMap(map);
+			yelpFilterRes.push(yelpMarker[yelpResTmp[j]['id']]);   
+			yelpFilterRes[yelpFilterRes.length-1].setMap(map); 
+
+
+			yelpFilterRes[yelpFilterRes.length-1].addListener('click', function() {
+			    if(yelpInfoWindow){
+			    	yelpInfoWindow.close();
+			    }
+			    this.infowindow.open(map, this);
+			    yelpInfoWindow = this.infowindow;
+			});
+
+		}
+
+		$('.overlayp').toggleClass('active');
+		$('.moreicon').toggleClass('active');
 	}
 
-	//panel.css('min-height',m.outerHeight());
-	$('.overlayp').toggleClass('active');
-	$('.moreicon').toggleClass('active');
-    //$('#yelpResult').popup('show');
 });
 
 $("#sendBtn").click(function(e) {
@@ -492,28 +500,58 @@ socket.on("shareLink", function(data){
 
 //Around Me
 $("#aroundBtn").click(function(e) {
-	if(yelpArea){
-		refereshYelpArea();
-	}
-
-	if((yelpMarker)||(yelpFilterRes)){
-		refreshYelpResult();
-	}
-	var myLatlng = new google.maps.LatLng(myLat,myLng);
-	yelpArea = new google.maps.Circle({
-	      strokeColor: '#FF0000',
-	      strokeOpacity: 0.8,
-	      strokeWeight: 2,
-	      fillColor: '#FF0000',
-	      fillOpacity: 0.35,
-	      map: map,
-	      center: myLatlng,
-	      radius: 10 * 1069.34
-	});
-	map.fitBounds(yelpArea.getBounds());
-	socket.emit('sendYelpLinearBounds', myLat,myLng, 10);
+	e.preventDefault();
+    $('#conditionInput').popup('show');
+    $('.overlayp').removeClass('active');
+    $('.moreicon').removeClass('active');
 });
 
+
+$("#yelpitBtn").click(function(e) {
+	var category = $('#categoryTxn').val();
+	if(category == ""){
+		var msg = "Category can't be empty...";
+		$.notify(msg);
+	}
+	else{
+		if(yelpArea){
+			refereshYelpArea();
+		}
+
+		if((yelpMarker)||(yelpFilterRes)){
+			refreshYelpResult();
+		}
+		var myLatlng = new google.maps.LatLng(myLat,myLng);
+		yelpArea = new google.maps.Circle({
+		      strokeColor: '#FF0000',
+		      strokeOpacity: 0.8,
+		      strokeWeight: 2,
+		      fillColor: '#FF0000',
+		      fillOpacity: 0.35,
+		      map: map,
+		      center: myLatlng,
+		      radius: 10 * 1069.34
+		});
+		map.fitBounds(yelpArea.getBounds());
+		socket.emit('sendYelpLinearBounds', myLat,myLng, category, 10);
+		$('#categoryTxn').val("");
+		$('#conditionInput').popup('hide');
+	}
+	
+});
+
+$("#cancelCon").click(function(e) {
+	e.preventDefault();
+	$('#conditionInput').popup('hide');
+});
+
+//yelp error
+socket.on("yelpError", function(data){
+	var obj = JSON.parse(data);
+	var msg = obj.error.text;
+	$.notify(msg);
+	refereshYelpArea();
+});
 
 //errorAlert: deal with all kinds of errorMsg
 socket.on("errorAlert", function(data){
@@ -559,5 +597,7 @@ function refreshYelpResult(){
 	yelpResTmp = [];
 
 	yelpInfoWindow = null;
+
+	list.innerHTML = "";
 }
 

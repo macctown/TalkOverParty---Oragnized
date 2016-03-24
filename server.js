@@ -119,21 +119,22 @@ io.on('connection', function(socket){
 
 
 	//1 or 2 people search
-	socket.on('sendYelpLinearBounds', function (centerLat, centerLng, radius){
-		logger.info("Going to search from center "+centerLat +", "+centerLng + "with radius: "+ radius + " miles");
+	socket.on('sendYelpLinearBounds', function (centerLat, centerLng, term, radius){
+		logger.info("Going to search ["+ term +"] from center "+centerLat +", "+centerLng + "with radius: "+ radius + " miles");
 		var radiusInMeter = radius * 1069.34;
-		yelp.search({ term: 'food', ll: centerLat+","+centerLng, radius_filter: radiusInMeter })
+		yelp.search({ term: term, ll: centerLat+","+centerLng, radius_filter: radiusInMeter })
 		.then(function (data) {
 		  logger.info("Yelp API Data: "+Object.keys(data));
 		  socket.emit('getApiDataInCircle', data);
 		})
 		.catch(function (err) {
 		  logger.error(err);
+		  socket.emit('yelpError', err.data);
 		});
 	});
 
 	//3 or more than 3 people search
-	socket.on('sendYelpBounds', function (neLat, neLng, swLat, swLng) {
+	socket.on('sendYelpBounds', function (neLat, neLng, swLat, swLng, term) {
 	   //socket.emit('serverMessage', 'Got a message!');
 	   northeastLat = neLat;
 	   northeastLng = neLng;
@@ -143,13 +144,14 @@ io.on('connection', function(socket){
 	   logger.info('Yelp Bounds NE-lat:', neLat,' , NE-lng:', neLng);
 	   logger.info('Yelp Bounds SW-lat:', swLat,' , SW-lng:', swLng);
 
-	   yelp.search({ term: 'food', bounds: northeastLat+","+northeastLng+"|"+southwestLat+","+southwestLng })
+	   yelp.search({ term: term, bounds: northeastLat+","+northeastLng+"|"+southwestLat+","+southwestLng })
 		.then(function (data) {
 		  logger.info(data);
 		  socket.emit('getApiDataInPoly', data);
 		})
 		.catch(function (err) {
 		  logger.error(err);
+		  socket.emit('yelpError', err.data);
 		});
 	});
 

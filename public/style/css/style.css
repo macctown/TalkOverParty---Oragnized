@@ -54,6 +54,7 @@ html {
 	border-radius: 10px;
 	border: 1px solid #bbb;
 	max-width: 100%;
+	text-align: left;
 }
 
 .chat-status{

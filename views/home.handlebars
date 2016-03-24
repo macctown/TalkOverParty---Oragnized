@@ -5,6 +5,7 @@
 <input id="userNameInput" type="hidden" value="{{userName}}">
 <input id="sharedLink" type="hidden" value="{{sharedLink}}">
 
+
 <!-- Rightbar -->
 <span class='moreicon glyphicon glyphicon-align-justify' id="listOpen"></span>
 
@@ -41,7 +42,7 @@
                     <button class="btn btn-link btn-sm" href="#standalone" style="margin-left: -15px;" id="shareBtn">Share With Friends</button>
                 </li>
                 <li>
-                    <a href="#">About</a>
+                    <button class="btn btn-link btn-sm" style="margin-left: -15px;" id="insBtn">Instruction</button>
                 </li>
             </ul>
 
@@ -100,6 +101,21 @@
                     <button class="btn btn-default" id="cancelName">Close</button>
                 </div>
 
+
+                <div id="conditionInput" class="well popupwindow">
+                    <h4>What are you looking for?</h4>
+                    <span>Category: </span><input type="text" placeholder="Sports Bars, Dive Bars, Buffet, Paintball..." id="categoryTxn"><br><br>
+                    <button class="btn btn-danger" id="yelpitBtn">Yelp it!</button>
+                    <button class="btn btn-default" id="cancelCon">Cancel</button>
+                </div>
+
+
+                <div id="btwConditionInput" class="well popupwindow">
+                    <h4>What are you looking for?</h4>
+                    <span>Category: </span><input type="text" placeholder="Sports Bars, Dive Bars, Buffet, Paintball..." id="btwCategoryTxn"><br><br>
+                    <button class="btn btn-danger" id="btwYelpitBtn">Yelp it!</button>
+                    <button class="btn btn-default" id="btwCancelCon">Cancel</button>
+                </div>
                 <script>
                 $(document).ready(function () {
 
@@ -117,6 +133,18 @@
                     });
 
                     $('#error').popup({
+                      transition: 'all 0.3s',
+                      scrolllock: true,
+                      blur: true
+                    });
+
+                    $('#conditionInput').popup({
+                      transition: 'all 0.3s',
+                      scrolllock: true,
+                      blur: true
+                    });
+
+                    $('#btwConditionInput').popup({
                       transition: 'all 0.3s',
                       scrolllock: true,
                       blur: true
@@ -181,6 +209,9 @@
         $('#link').popup('hide');
     });
 
+    $('#insBtn').click(function(){
+        $('#myCarousel').fadeIn('slow');
+      });
 
     $('#listClose').click(function(){
         $('.overlayp').removeClass('active');
