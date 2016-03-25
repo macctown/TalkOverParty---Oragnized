@@ -45,11 +45,23 @@ var userId = $('#userIdInput').val();
         var expires = "; expires="+date.toGMTString();
         document.cookie = "cUserId="+userId+expires+"; path=/";
 
+
+var chatIdLocate = document.cookie.toString().search('cChatId');
+if(chatIdLocate > -1){
+	var chatId_Cookie = document.cookie.toString().substr(chatIdLocate+8, 24);
+	if(chatId_Cookie){
+		//refresh socket id by userId and chatId
+		socket.emit("refreshSocket", chatId_Cookie, userId);
+		$('#chatIdInput').val(chatId_Cookie);
+	}
+}
+
+
 var info = $("#infobox");
 var doc = $(document);
 console.log("User Info:" + userId);
 
-$("#nameTxn").val(userId);
+//$("#nameTxn").val(userId);
 $("#nameValue").val(userId);
 
 socket.on("load:coords", function(data){
@@ -329,7 +341,7 @@ socket.on("getApiDataInPoly", function(data){
 	                   	
 			var resBtn = document.createElement('div');
 			resBtn.setAttribute('class','btn-group-vertical');
-			resBtn.innerHTML = "<button type='button' class='btn btn-default btn-xs'>More Info</button>";
+			resBtn.innerHTML = "<a class='btn btn-danger btn-xs yelp-share' href="+yelpResTmp[j]['url']+" target='_blank'>More on Yelp</a>";
 
 
 			resRow.appendChild(resLink);
@@ -423,11 +435,11 @@ socket.on("getApiDataInCircle", function(data){
 
 			var resInfo = document.createElement('div');
 			resInfo.setAttribute('class','legend-info');
-			resInfo.innerHTML = "<strong>"+yelpResTmp[j]['name']+"</strong><br>"+yelpResTmp[j]['location']['address'] + " " + yelpResTmp[j]['location']['city'] + " " + yelpResTmp[j]['location']['state_code'];
+			resInfo.innerHTML = "<strong>"+yelpResTmp[j]['name']+"</strong><br>"+yelpResTmp[j]['location']['address'] + " <br>" + yelpResTmp[j]['location']['city'] + " " + yelpResTmp[j]['location']['state_code'];
 	                   	
 			var resBtn = document.createElement('div');
 			resBtn.setAttribute('class','btn-group-vertical');
-			resBtn.innerHTML = "<button type='button' class='btn btn-default btn-xs'>More Info</button>";
+			resBtn.innerHTML = "<a class='btn btn-danger btn-xs yelp-share' href="+yelpResTmp[j]['url']+" target='_blank'>More on Yelp</a>";
 
 
 			resRow.appendChild(resLink);
@@ -564,6 +576,12 @@ socket.on("shareLink", function(data){
     document.cookie = "cSharedLink="+decodeURIComponent(data)+expires+"; path=/";
 
     var chatId = data.toString().split('/')[4];
+    //set chatId cookie
+    var date = new Date();
+    date.setTime(date.getTime()+(60*1000)); 
+    var expires = "; expires="+date.toGMTString();
+    document.cookie = "cChatId="+chatId+expires+"; path=/";
+
     $('#chatIdInput').val(chatId);
 	$('#sharedLink').val(data);
 	$('#content').html("<input type='text' id='linkContent' value='"+data+"'>");
@@ -674,3 +692,8 @@ function refreshYelpResult(){
 	list.innerHTML = "";
 }
 
+function getCookie(name) {
+   var re = new RegExp(name + "=([^;]+)");
+    var value = re.exec(document.cookie);
+    return (value != null) ? unescape(value[1]) : null;
+}

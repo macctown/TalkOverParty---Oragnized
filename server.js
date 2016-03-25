@@ -101,6 +101,7 @@ io.on('connection', function(socket){
         		socket.emit('errorAlert', err);
             }
             else{
+            	logger.info("Length: "+chat.chatUsers.length);
             	//emit msg to each chatee
             	for(var i=0; i<chat.chatUsers.length; i++)
             	{
@@ -155,6 +156,49 @@ io.on('connection', function(socket){
 		});
 	});
 
+	//update user SocketID into chat
+	socket.on('refreshSocket', function(chatId, userId){
+		logger.info(userId + " reopen and begin to update his socketId "+socket.id + " in chat room: "+chatId);
+
+		var conn = mongoose.createConnection('mongodb://127.0.0.1:27017/talkParty', function(err) {
+			    if(err){
+				    logger.error(err);
+				    socket.emit('errorAlert', err);
+			    }
+			    else{
+					//console.log("User Name Session Set: "+session);
+					logger.info("MongoDB Connected in fucntion: updateUserSocket!");
+				}
+			});
+
+
+		var Chat = conn.model('Chat', chatSchema);
+
+		Chat.update(
+				{_id: chatId, 'chatUsers.userId':userId}, 
+				{$set:{"chatUsers.$.socketId":socket.id}},
+    			function(err, model) {	
+    				if(err){
+	        			logger.error("Error when refresh user socket: "+err);
+	        			socket.emit('errorAlert', err);
+    				}
+    				else{
+        				logger.info("User "+userId+" refresh his socket: "+socket.id+" into chat successfully");
+    				}
+        			
+    		});
+
+		/*Chat.find({_id: chatId}).exec(function(err, chat){
+			if(chat.length != 0){
+				logger.info("Get "+chat.length+" messages from Chat room "+chatId);
+		    	logger.warn(JSON.stringify(chat));
+		    	var chatRes = JSON.parse(JSON.stringify(chat));
+		    	logger.warn(chatRes.chatContent);
+			}
+
+		});*/
+
+	});
 
 	//update userName and insert user into chat
 	socket.on('joinUsertoChat', function(data){
@@ -251,6 +295,7 @@ io.on('connection', function(socket){
             		io.to(chat.chatUsers[i].socketId).emit('chatOutput', data);
             	}
 
+            	/*
             	//store in mongodb
         		var newMsg  = new Msg({
         			userId: userId,
@@ -271,7 +316,7 @@ io.on('connection', function(socket){
     				else{
         				logger.info("User "+userId+" message saved into chat successfully");
     				}      			
-    			});
+    			});*/
             }
         });
 	});
@@ -368,19 +413,21 @@ app.get('/:chatId', function(req,res){
 	var cookie_userId = req.cookies.cUserId;
 	var data = {};
 	if(typeof cookie_userId !== 'undefined' && cookie_userId){
+		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: false });
 		logger.info("chatId Page - ID Cookie Found and set: "+cookie_userId);
 	}
 	else{
 		cookie_userId = uuid.v4();
+		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: false });
 		logger.info("chatId Page - ID Generated and set: "+cookie_userId);
 	}
 
 	if(req.params.chatId.toString().length == 24){
 		var link = req.protocol + "://"+req.get('host')+"/joinChat/"+req.params.chatId;
-		res.cookie('cSharedLink',link, { maxAge: 60000, httpOnly: true });
+		res.cookie('cSharedLink',link, { maxAge: 60000, httpOnly: false });
 		logger.info("Reset sharedlink cookie: "+link);
 
-		res.cookie('cChatId',req.params.chatId, { maxAge: 60000, httpOnly: true });
+		res.cookie('cChatId',req.params.chatId, { maxAge: 60000, httpOnly: false });
 		logger.info("Set chatId cookie: "+req.params.chatId);		
 		data = {userId:cookie_userId, chatId:req.params.chatId, sharedLink:link};
 	}
@@ -396,12 +443,12 @@ app.get('/', function(req,res){
 	var data = "";
 	if(typeof cookie_userId !== 'undefined' && cookie_userId){
 		data = {userId:cookie_userId};
-		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: true });
+		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: false });
 		logger.info("Index Page - ID Cookie Found and set: "+cookie_userId);
 	}
 	else{	
 		var newuserId = uuid.v4();
-		res.cookie('cUserId',newuserId, { maxAge: 60000, httpOnly: true });
+		res.cookie('cUserId',newuserId, { maxAge: 60000, httpOnly: false });
 		logger.info("Index Page - cookie userId Generated and set: "+newuserId);
 		data = {userId:newuserId};
 	}

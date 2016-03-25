@@ -30,22 +30,22 @@
                     </a>
                 </li>
                 <li>
-                    <button class="btn btn-link btn-sm" style="margin-left: -15px;" id="bbulink">Between Us</button>
+                    <button class="btn btn-primary btn-sm left-menu" id="insBtn">Instruction</button>
                 </li>
                 <li>
-                    <button class="btn btn-link btn-sm" style="margin-left: -15px;" id="aroundBtn">Around Me</button>
+                    <button class="btn btn-warning btn-sm left-menu"  id="bbulink">Between Us</button>
                 </li>
                 <li>
-                    <button class="fade_open btn btn-link btn-sm" href="#fade" style="margin-left: -15px;">Set Name</button>
+                    <button class="btn btn-danger btn-sm left-menu" id="aroundBtn">Around Me</button>
                 </li>
                 <li>
-                    <button class="btn btn-link btn-sm" href="#standalone" style="margin-left: -15px;" id="shareBtn">Share With Friends</button>
+                    <button class="btn btn-success btn-sm left-menu" href="#standalone" id="shareBtn">Chat With Friends</button>
                 </li>
                 <li>
-                    <button class="btn btn-link btn-sm" style="margin-left: -15px;" id="insBtn">Instruction</button>
+                    <button class="fade_open btn btn-info btn-sm left-menu" href="#fade">Set Name</button>
                 </li>
+               <div class="fb-share-button" style="margin-left: 20px;margin-top: 20px;"data-href="http://talkover.party" data-layout="box_count"></div>
             </ul>
-
         </div>
         <!-- /#sidebar-wrapper -->
 
@@ -66,7 +66,7 @@
                         <div class="col-sm-4 col-lg-12 col-xs-12 right-panel">
                             <div class="chat-messages">
                              </div>
-                             <div class="input-group">
+                             <div class="input-group" id="chat-inputBtn">
                               <input type="text" class="form-control" placeholder="Type your message..." id="txtInput">
                               <span class="input-group-btn">
                                 <button class="btn btn-danger" type="button" id="sendBtn">Send</button>
@@ -176,7 +176,7 @@
     $("#saveName").click(function(e) {
         e.preventDefault();
         $("#nameValue").val($("#nameTxn").val());
-        $("#userNameInput").val($("#nameTxn").val());
+        $("#userNameInput").val($("#nameValue").val());
         $('#fade').popup('hide');
         var chatId = $("#chatIdInput").val();
         var userName = $("#nameValue").val();
