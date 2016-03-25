@@ -36,6 +36,7 @@
 #wrapper.toggled #sidebar-wrapper {
     width: 100px;
     min-width: 100px; 
+    box-shadow: 7px 7px 6px grey;
 }
 
 #page-content-wrapper {

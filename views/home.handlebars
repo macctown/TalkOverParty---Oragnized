@@ -88,7 +88,7 @@
                     <span>Share with your friends: </span><br>
                     <div id="content"></div>
                     <br><br>
-                    <button class="btn btn-default" id="copyLink">Cpoy</button>
+                    <button class="btn btn-default" id="copyLink">Copy</button>
                     <button class="btn btn-default" id="closeName">Close</button>
                 </div>
 
@@ -227,6 +227,21 @@
             var msg = "No result from yelp, please try [Around Me] Or [Between Us]";
             $.notify(msg);
         }
+      });
+
+
+      $('#copyLink').click(function(){
+        var link = $('#linkContent').val();
+        var shareLink = document.querySelector('#linkContent');  
+          var range = document.createRange();  
+          range.selectNode(shareLink);  
+          window.getSelection().addRange(range);  
+        try {   
+            var successful = document.execCommand('copy');
+            $('#linkContent').notify('Successfully Copied!',{position:"bottom center"});
+          } catch(err) {  
+            $('#linkContent').notify('Oops, unable to copy',{position:"bottom center"});  
+          } 
       });
     </script>
 
