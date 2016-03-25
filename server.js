@@ -385,7 +385,7 @@ io.on('connection', function(socket){
 			    	logger.info("Chat Created: "+res.id);
 			    	var link = "http://talkover.party"+'/joinChat/'+res.id;
 			    	 	var date = new Date();
-					    date.setTime(date.getTime()+(60*1000)); 
+					    date.setTime(date.getTime()+(60*1000*15)); 
 					    var expires = "; expires="+date.toGMTString();
 					socket.handshake.headers.cookie += ';cSharedLink='+decodeURIComponent(link)+expires+";path=/";
 			    	logger.info("Link Cookie Created: "+link);
@@ -413,21 +413,21 @@ app.get('/:chatId', function(req,res){
 	var cookie_userId = req.cookies.cUserId;
 	var data = {};
 	if(typeof cookie_userId !== 'undefined' && cookie_userId){
-		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: false });
+		res.cookie('cUserId',cookie_userId, { maxAge: 60000*15, httpOnly: false });
 		logger.info("chatId Page - ID Cookie Found and set: "+cookie_userId);
 	}
 	else{
 		cookie_userId = uuid.v4();
-		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: false });
+		res.cookie('cUserId',cookie_userId, { maxAge: 60000*15, httpOnly: false });
 		logger.info("chatId Page - ID Generated and set: "+cookie_userId);
 	}
 
 	if(req.params.chatId.toString().length == 24){
 		var link = req.protocol + "://"+req.get('host')+"/joinChat/"+req.params.chatId;
-		res.cookie('cSharedLink',link, { maxAge: 60000, httpOnly: false });
+		res.cookie('cSharedLink',link, { maxAge: 60000*15, httpOnly: false });
 		logger.info("Reset sharedlink cookie: "+link);
 
-		res.cookie('cChatId',req.params.chatId, { maxAge: 60000, httpOnly: false });
+		res.cookie('cChatId',req.params.chatId, { maxAge: 60000*15, httpOnly: false });
 		logger.info("Set chatId cookie: "+req.params.chatId);		
 		data = {userId:cookie_userId, chatId:req.params.chatId, sharedLink:link};
 	}
@@ -443,12 +443,12 @@ app.get('/', function(req,res){
 	var data = "";
 	if(typeof cookie_userId !== 'undefined' && cookie_userId){
 		data = {userId:cookie_userId};
-		res.cookie('cUserId',cookie_userId, { maxAge: 60000, httpOnly: false });
+		res.cookie('cUserId',cookie_userId, { maxAge: 60000*15, httpOnly: false });
 		logger.info("Index Page - ID Cookie Found and set: "+cookie_userId);
 	}
 	else{	
 		var newuserId = uuid.v4();
-		res.cookie('cUserId',newuserId, { maxAge: 60000, httpOnly: false });
+		res.cookie('cUserId',newuserId, { maxAge: 60000*15, httpOnly: false });
 		logger.info("Index Page - cookie userId Generated and set: "+newuserId);
 		data = {userId:newuserId};
 	}
