@@ -10,7 +10,9 @@ The stack is: Node.js + Express + Socket.io + MongoDB + Mongoose + (Angular.js =
 
 ###Discussion
 This project will be a long-term one, so feel free to talk with me if you have any good idea on this project. 
+
 Email: macctown@hotmail.com
+
 Linkedin: https://www.linkedin.com/in/weizhang131
 
 ###License
