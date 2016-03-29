@@ -71,10 +71,10 @@ var chatSchema = new Schema({
 io.on('connection', function(socket){
 	
 	var yelp = new Yelp({
-		consumer_key: 'v4hjI53TEiOPzQxkazpR6A',
-		consumer_secret: 'TXXFLEu-KXOipXVOKRgDx1v_Py8',
-		token: 'FChFCtuAmyPaRxYiJI0IlWhwc-svbOnX',
-		token_secret: 'n9oaLmDrjSJjmpCQ748EQPo_-Lk',
+		consumer_key: 'you cant see me',
+		consumer_secret: 'you cant see me',
+		token: 'you cant see me',
+		token_secret: 'you cant see me',
 	});
 
 
